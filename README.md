@@ -15,13 +15,20 @@
 2. [Web Scraping](#web-scraping)
 3. [Using Ollama to Generate Keywords](#using-ollama-to-generate-keywords)
 4. [ETL Pipeline](#etl-pipeline)
-5. [API Approach A: Direct SQL Query API](#api-approach-a-direct-sql-query-api)
-6. [API Approach B: LLM-Generated SQL Search API](#api-approach-b-llm-generated-sql-search-api)
+5. [Flask API Approach A: Direct SQL Query API](#flask-api-approach-a-direct-sql-query-api)
+6. [API Approach B: LLM-Generated SQL Search API](#flask-api-approach-b-llm-generated-sql-search-api)
 7. [Test Clients](#test-clients)
 8. [How to Replicate This Project](#how-to-replicate-this-project)
 9. [Future work](#future-work)
+20. [Conclusion](#conclusion)
 
 # Project Overview
+
+<p align="center">
+  <img src="images/Flowchart.png" width="400">
+</p>
+
+
 
 This project implements an end-to-end automated news processing and retrieval system.  
 The workflow begins by web-scraping news articles from online sources and extracting structured
@@ -174,6 +181,11 @@ Below is an example of the short, single-word (or minimal) keywords produced by 
 
 # ETL Pipeline
 
+<p align="center">
+  <img src="images/ETL_ERD.png" width="400">
+</p>
+
+
 The ETL pipeline converts the scraped article data and LLM-generated keywords into a clean,
 search-ready MySQL database. Only a subset of articles (used for testing) was processed.
 
@@ -249,7 +261,7 @@ This structured database powers both search approaches implemented in Flask.
 
 
 
-# API Approach A: Direct SQL Query API
+# Flask API Approach A: Direct SQL Query API
 In this approach, the API communicates directly with the MySQL database using predefined SQL
 queries. Each endpoint performs a specific search operation such as filtering by keyword,
 author, category, publication date, or returning a random article.  
@@ -321,7 +333,7 @@ Below is a summary of all available endpoints in Approach 1:
 
 
 ```
-# API Approach B: LLM-Generated SQL Search API
+# Flask API Approach B: LLM-Generated SQL Search API
 
 In this approach, the API uses an LLM (via Ollama running `mistral:instruct`) to dynamically
 generate SQL queries based on user-provided keywords.  
@@ -510,5 +522,15 @@ python client2.py
 - Deploy the API on cloud services such as AWS or Render
 - Improve SQL generation with validation and safety checks
 - Add user authentication using JWT instead of key-based access
+
+------------------------------------------------------------
+
+## Conclusion
+
+This project successfully demonstrates a complete end-to-end pipeline for transforming raw online news articles into a searchable and intelligent data system. Starting with HTML-based web scraping, articles are collected, cleaned, and enriched with conceptual keywords generated using local LLM models through Ollama. The ETL pipeline organizes all information into a relational MySQL database, enabling flexible querying and exploration.
+
+Two search approaches were implemented: direct SQL queries through Flask API endpoints and dynamic SQL generation using an LLM for semantic search. Together, these components provide both traditional and AI-assisted retrieval capabilities.
+
+This system forms a strong foundation for more advanced applications such as semantic search, topic modeling, recommendation systems, dashboards, and large-scale automated news analytics.
 
 
