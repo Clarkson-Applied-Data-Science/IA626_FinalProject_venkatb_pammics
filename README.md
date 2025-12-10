@@ -15,12 +15,11 @@
 2. [Web Scraping](#web-scraping)
 3. [Using Ollama to Generate Keywords](#using-ollama-to-generate-keywords)
 4. [ETL Pipeline](#etl-pipeline)
-5. [Approach 1 – Flask App API (Endpoints & JSON Examples)](#approach-1-flask-app-api-endpoints-&-json-examples)
-6. [Approach 2 – Flask App API (Endpoints & JSON Examples)](#approach-2--flask-app-api-endpoints--json-examples)
-7. [Test Client – Approach 1](#test-client--approach-1)
-8. [Test Client – Approach 2](#test-client--approach-2)
-9. [How to Run](#how-to-run)
-10. [Future Improvements](#future-improvements)
+5. [API Approach A: Direct SQL Query API](#api-approach-a-direct-sql-query-api)
+6. [API Approach B: LLM-Generated SQL Search API](#api-approach-b-llm-generated-sql-search-api)
+7. [Test Clients](#test-clients)
+8. [How to Replicate This Project](#how-to-replicate-this-project)
+9. [Future work](#future-work)
 
 # Project Overview
 
@@ -65,13 +64,9 @@ ethical scraping standards.
 The scraping workflow uses Python libraries such as `requests`, `feedparser`, and
 `BeautifulSoup` and follows these steps:
 
-1. **RSS Feed Discovery** – The system identifies multiple valid RSS feed endpoints provided
-   by the news source (Latest, US, World, Politics, Opinion, etc.). RSS feeds are public and
-   intended for automated consumption, making them a compliant data source.
-
-2. **Article Extraction** – For each article link discovered via RSS, the scraper retrieves
-   and processes only publicly accessible portions of the article. No restricted pages,
-   paywalled content, or blocked sections are accessed.
+1. **Category Page Crawling & Link Discovery** – The scraper collects publicly accessible article links by navigating the news site’s category pages (e.g., Politics, World, US, Business).
+For each category, the system iterates through the site’s paginated HTML endpoints and parses the returned pages using BeautifulSoup. From these pages, the scraper extracts valid article links by identifying category-specific `<a>` elements. Only publicly available, non-restricted links are collected, ensuring compliant and ethical data retrieval.
+2. **Article Extraction** – For each article link collected from the category pages, the scraper retrieves and processes only publicly accessible portions of the article. The system extracts core metadata such as the title, author, publication date, category, and visible article body text. No restricted pages, paywalled content, or blocked sections are accessed, ensuring compliant and ethical data collection.
 
 3. **HTML Parsing & Cleaning** – Using BeautifulSoup, the scraper extracts structured
    components such as:
@@ -99,6 +94,8 @@ After collecting the raw news articles via web scraping, the next stage of the p
 focuses on enriching each article with high-level conceptual keywords. This is done using
 a locally hosted Large Language Model (LLM) running through **Ollama**, specifically the
 `mistral:instruct` model.
+
+Other Ollama models such as deepseek-coder were tested early in the project but not used because they did not consistently generate valid JSON or high-level conceptual tags required for automated processing. deepseek-coder tended to produce code-like outputs, add explanations, or ignore the strict formatting rules needed for database ingestion. Larger models (e.g., Mixtral, Llama3-70B) were also avoided due to slower performance and no meaningful accuracy improvement for our workflow. So we proceeded to use mistral:instruct as our ollama model
 
 For this project, **keyword generation was intentionally performed only on a selected subset
 of scraped articles**. The purpose was to validate the workflow, test prompt design,
@@ -252,7 +249,7 @@ This structured database powers both search approaches implemented in Flask.
 
 
 
-# 4. API Approach A: Direct SQL Query API
+# API Approach A: Direct SQL Query API
 In this approach, the API communicates directly with the MySQL database using predefined SQL
 queries. Each endpoint performs a specific search operation such as filtering by keyword,
 author, category, publication date, or returning a random article.  
@@ -324,7 +321,7 @@ Below is a summary of all available endpoints in Approach 1:
 
 
 ```
-# Approach 2 – Flask API (LLM-Generated SQL Search)
+# API Approach B: LLM-Generated SQL Search API
 
 In this approach, the API uses an LLM (via Ollama running `mistral:instruct`) to dynamically
 generate SQL queries based on user-provided keywords.  
@@ -342,11 +339,13 @@ All endpoints require a key
 ---
 
 ### Endpoint Summary Table (Approach 2)
+### Endpoint Summary Table
 
-| Endpoint Name | Example Call | Method | Notes |
-|---------------|--------------|--------|-------|
-| **generateSQL** | `http://127.0.0.1:5000/generateSQL?q=angry&key=testkey` | GET | LLM generates a SQL query using the user keyword and returns matching article URLs. |
-| **runQuery** | `http://127.0.0.1:5000/runQuery?q=angry&key=tetskey` | GET | Executes the LLM-generated SQL and returns detailed results. |
+| Endpoint | Method | Example Request | Description |
+|----------|--------|------------------|--------------|
+| **/** | GET, POST | `http://127.0.0.1:5000/` | Root endpoint for API health-check. Returns a JSON message confirming the API is running. |
+| **/runQuery** | GET | `http://127.0.0.1:5000/runQuery?q=angry&key=testkey` | Validates the API key, accepts a keyword via `q`, generates an LLM-powered SQL query, executes it, and returns matching article records in JSON format. |
+
 
 ---
 
@@ -366,7 +365,7 @@ All endpoints require a key
    semantic meaning of the input.
 
 5. **Response returned to user**  
-   Both endpoints (`generateSQL` and `runQuery`) return structured JSON output.
+   endpoints  `runQuery` return structured JSON output.
 
 ---
 
@@ -385,6 +384,7 @@ All endpoints require a key
     ],
     "sqltime": 0.0421
 }
+```
 
 
 This version uses Ollama to generate SQL queries dynamically.
@@ -402,8 +402,7 @@ This version uses Ollama to generate SQL queries dynamically.
 
 This enables flexible natural-language search.
 
-
-# 6. Test Clients
+# Test Clients
 
 Two test scripts verify the APIs.
 
@@ -416,5 +415,100 @@ Two test scripts verify the APIs.
 - Validates LLM-generated SQL  
 
 Both clients measure response times and ensure correctness.
+
+# How to Replicate This Project 
+
+## 1. Web Scraping Using Our Script
+webscraping.ipynb
+
+This script performs direct HTML scraping.  
+It visits category pages such as:
+https://www.articles.com/category/politics?page=1
+
+It extracts:
+- URL
+- Title
+- Author
+- Date
+- Category
+- Article body
+
+It saves all scraped articles into a CSV or JSON file.
+
+------------------------------------------------------------
+
+## 2. Generate Keywords Using Ollama
+Install Ollama:
+https://ollama.com/download
+
+Pull models:
+ollama pull mistral:instruct
+ollama pull llama3.1
+
+Start Ollama:
+ollama serve
+
+Generate keywords:
+ollama_tag_generation.ipynb
+
+## 3. Populate MySQL Tables (ETL Script)
+database.ipynb
+This script inserts data into:
+- ia626_articles
+- ia626_keywords
+- ia626_article_keywords
+
+------------------------------------------------------------
+## 4. Run the Flask API approach 1
+python app1.py
+
+API URL:
+http://127.0.0.1:5000/
+
+Example endpoints:
+
+http://127.0.0.1:5000/ByKeyword?key=your_key&keyword=security
+
+http://127.0.0.1:5000/ByAuthor?key=your_key&name=John
+
+http://127.0.0.1:5000/ByCategory?key=your_key&cat=Politics
+
+http://127.0.0.1:5000/runQuery?key=your_key&q=military
+
+
+## 5.Run the flask api approach 2
+python app2.py
+
+API URL:
+http://127.0.0.1:5000/
+
+example endpoints
+
+http://127.0.0.1:5000/runQuery?q=angry&key=testkey
+
+http://127.0.0.1:5000/runQuery?q=chicago&key=testkey
+
+
+------------------------------------------------------------
+
+## 5. Run the Test Clients
+Approach 1:
+python client1.py
+
+Approach 2:
+python client2.py
+
+------------------------------------------------------------
+
+## Future Work
+- Integrate a vector embedding model for semantic search
+- Add pagination and filtering features to API endpoints
+- Build a full UI dashboard for article exploration
+- Automate daily scraping and database updates
+- Enhance keyword extraction with multi-word keyphrases
+- Add sentiment analysis and topic classification
+- Deploy the API on cloud services such as AWS or Render
+- Improve SQL generation with validation and safety checks
+- Add user authentication using JWT instead of key-based access
 
 

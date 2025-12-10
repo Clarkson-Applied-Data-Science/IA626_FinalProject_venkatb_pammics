@@ -1,4 +1,5 @@
-import config
+import configdbms
+import configserver
 import ollama
 import json
 from flask import Flask, request
@@ -11,11 +12,11 @@ app = Flask(__name__)
 def make_conn():
     try:
         conn = pymysql.connect(
-            host=config.mysql["host"],
-            port=config.mysql["port"],
-            user=config.mysql["user"],
-            passwd=config.mysql["password"],
-            db=config.mysql["database"],
+            host=configdbms.mysql["host"],
+            port=configdbms.mysql["port"],
+            user=configdbms.mysql["user"],
+            passwd=configdbms.mysql["password"],
+            db=configdbms.mysql["database"],
             autocommit=True,
             cursorclass=pymysql.cursors.DictCursor
         )
@@ -25,9 +26,11 @@ def make_conn():
         return None
 
 
+
 def check_key(req):
     key = req.args.get("key")
-    return key == config.api['key']
+    return key in configserver.server["allowed_keys"]
+
 
 
 @app.route("/", methods=['GET','POST'])

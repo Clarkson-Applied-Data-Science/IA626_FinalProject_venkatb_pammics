@@ -1,4 +1,5 @@
-import config
+import configdbms
+import configserver
 import json, pymysql, time
 from flask import Flask, request
 
@@ -8,11 +9,11 @@ app = Flask(__name__)
 def make_conn():
     try:
         conn = pymysql.connect(
-            host=config.mysql["host"],
-            port=config.mysql["port"],
-            user=config.mysql["user"],
-            passwd=config.mysql["password"],
-            db=config.mysql["database"],
+            host=configdbms.mysql["host"],
+            port=configdbms.mysql["port"],
+            user=configdbms.mysql["user"],
+            passwd=configdbms.mysql["password"],
+            db=configdbms.mysql["database"],
             autocommit=True,
             cursorclass=pymysql.cursors.DictCursor
         )
@@ -22,19 +23,29 @@ def make_conn():
         return None
 
 
-
 @app.before_request
 def global_auth():
     if request.path == "/":
         return
+
     key = request.args.get("key")
-    if key != config.api['key']:
+
+    if not key:
         res = {
             "req": request.path,
             "code": 0,
             "msg": "auth error"
         }
         return json.dumps(res, indent=4), 401
+
+    if key not in configserver.server["allowed_keys"]:
+        res = {
+            "req": request.path,
+            "code": 0,
+            "msg": "auth error"
+        }
+        return json.dumps(res, indent=4), 401
+
 
 
 

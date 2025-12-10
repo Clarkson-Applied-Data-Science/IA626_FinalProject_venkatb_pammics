@@ -1,2 +1,6 @@
-.csv
-config.py
+*.csv
+*.json
+configdbms.py
+configclient.py
+configserver.py
+__pycache__/
